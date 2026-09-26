@@ -1,0 +1,4 @@
+data/*.csv
+data/MANIFEST.json
+dumps/
+__pycache__/

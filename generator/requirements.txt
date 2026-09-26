@@ -1,0 +1,4 @@
+numpy>=1.26
+pandas>=2.1
+faker>=24
+pymysql>=1.1
