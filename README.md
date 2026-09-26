@@ -45,8 +45,12 @@ mysql -uroot -p -e "SELECT VERSION();"
 ```bash
 git clone https://github.com/firasshakaa-najah/db102-capstone-kit.git
 cd db102-capstone-kit
+python3 -m venv .venv                      # a private Python environment for the kit
+source .venv/bin/activate                  # run this again in every new terminal
 pip install -r generator/requirements.txt
 ```
+
+On Ubuntu / Debian, if `python3 -m venv` fails, install it first: `sudo apt install python3-venv`.
 
 ### 3. Prepare the server
 
@@ -160,6 +164,10 @@ db102-capstone-kit/
 
 ## Troubleshooting
 
+- **`error: externally-managed-environment`** when running `pip install`: you skipped the
+  virtual environment. Run `python3 -m venv .venv && source .venv/bin/activate`, then `pip install` again.
+- **`ModuleNotFoundError: No module named 'numpy'`** (or `pymysql`, `faker`): the virtual environment
+  is not active in this terminal. Run `source .venv/bin/activate`.
 - **`mysql: command not found`**: the client is not on your PATH. On macOS run
   `brew link --force mysql@8.4`, then open a new terminal.
 - **`Access denied for user 'root'`** on Ubuntu: there root can only log in with `sudo mysql`.

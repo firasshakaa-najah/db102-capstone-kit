@@ -5,3 +5,4 @@ __pycache__/
 data-full/*.csv
 data-full/MANIFEST.json
 .DS_Store
+.venv/
