@@ -5,9 +5,9 @@ DB-102 capstone data generator: a multi-tenant e-commerce platform (Shopify-like
 Writes CSV files for `LOAD DATA INFILE` (see sql/load.sql). Deterministic for a
 given --seed, so every team gets the same data and the same "ten worst queries".
 
-    python generate.py --scale 0.2                  # lab server   -> ./data       (1.2M orders, ~1 min)
-    python generate.py --scale 1 --target full      # full server  -> ./data-full  (the course dataset: 50M orders+events)
-    python generate.py --scale 0.05 --out /tmp/x    # any folder
+    python generate.py                              # lab:  scale 0.2 -> ./data       (1.2M orders, ~1 min)
+    python generate.py --target full                # full: scale 1   -> ./data-full  (the course dataset: 50M orders+events)
+    python generate.py --scale 0.05 --out /tmp/x    # any size, any folder
 
 Row plan at scale 1.0:  200 stores (~180 tenants), 60k products, 1.5M customers,
 6M orders, ~14M order items, ~6M payments, 44M events  -> ~78M rows, ~8 GB of CSV.
@@ -510,15 +510,17 @@ def generate_facts(rng, dims, writer, n_orders, n_events, chunk_size):
 # ----------------------------------------------------------------------------
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--scale", type=float, default=0.05, help="fraction of the full dataset (1.0 = the course dataset)")
+    ap.add_argument("--scale", type=float, default=None,
+                    help="fraction of the full dataset, 1.0 = the course dataset (default: 0.2 for lab, 1 for full)")
     ap.add_argument("--target", choices=["lab", "full"], default="lab",
-                    help="which server the CSVs are for: lab -> ./data (mounted by service mysql), "
-                         "full -> ./data-full (mounted by service mysql-full)")
+                    help="which dataset: lab -> ./data (loaded into shopdb), full -> ./data-full (loaded into shopdb_full)")
     ap.add_argument("--out", default=None, help="output folder (overrides --target)")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--chunk", type=int, default=250_000, help="orders per chunk (memory vs speed)")
     args = ap.parse_args()
 
+    if args.scale is None:
+        args.scale = 0.2 if args.target == "lab" else 1.0
     if args.out is None:
         kit = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
         args.out = os.path.join(kit, "data" if args.target == "lab" else "data-full")

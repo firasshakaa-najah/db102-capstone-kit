@@ -56,6 +56,8 @@ ORDER BY statement_latency DESC;
 -- KILL QUERY <conn_id>;                 -- stop a runaway
 
 -- 6. The slow query log (statements over long_query_time = 0.5 s, with log_slow_extra).
---    docker compose exec mysql sh -c 'tail -n 100 /var/lib/mysql/slow.log'
---    docker compose exec mysql sh -c 'mysqldumpslow -s t -t 10 /var/lib/mysql/slow.log'
---    pt-query-digest slow.log   (Percona Toolkit, on the host)
+--    Where is it?  SELECT @@slow_query_log_file;   (relative names live in SELECT @@datadir;)
+--    Then, in a terminal (the file belongs to the MySQL server; you may need sudo):
+--      tail -n 100 <that file>
+--      mysqldumpslow -s t -t 10 <that file>
+--      pt-query-digest <that file>     (Percona Toolkit)

@@ -1,32 +1,29 @@
 #!/usr/bin/env bash
-# Create the schema and bulk-load the generated CSVs.
+# Create the database and bulk-load the generated CSVs, then verify.
+# Drops and recreates the tables, so it is also the way to start again from scratch.
 #
-#   scripts/load.sh                     # lab server  (Docker service "mysql",      CSVs from ./data)
-#   scripts/load.sh full                # full server (Docker service "mysql-full", CSVs from ./data-full)
-#   MYSQL="mysql -uroot -p" scripts/load.sh   # a local server; DATA_DIR must be readable by mysqld
-#                                        # and inside its secure_file_priv folder
+#   scripts/load.sh          # lab:  ./data       -> database shopdb
+#   scripts/load.sh full     # full: ./data-full  -> database shopdb_full
 set -euo pipefail
 cd "$(dirname "$0")/.."
-# shellcheck source=scripts/target.sh
-source scripts/target.sh "$@"
+# shellcheck source=scripts/common.sh
+source scripts/common.sh "$@"
 
-DATA_DIR="${DATA_DIR:-/data}"                   # path AS SEEN BY THE SERVER
-MYSQL="${MYSQL:-docker compose exec -T $DB102_SERVICE mysql -uroot -proot}"
-
-if [ ! -f "$DB102_LOCAL_DATA/orders.csv" ] && [ "$DATA_DIR" = "/data" ]; then
-  if [ "$DB102_TARGET" = "full" ]; then hint="--scale 1 --target full"; else hint="--scale 0.2"; fi
-  echo "No $DB102_LOCAL_DATA/orders.csv found. Run the generator first:  python generator/generate.py $hint" >&2
+if [ ! -f "$DB102_DATA/orders.csv" ]; then
+  if [ "$DB102_TARGET" = "full" ]; then gen="--target full"; else gen=""; fi
+  echo "No $DB102_DATA/orders.csv yet. Generate the data first:  python3 generator/generate.py $gen" >&2
   exit 1
 fi
+csv_dir="$(cd "$DB102_DATA" && pwd)"
 
-echo "== target: $DB102_TARGET ($DB102_SERVICE, port $DB102_PORT)"
+echo "== $DB102_TARGET: loading $DB102_DATA/ into database $DB102_DB"
 echo "== schema"
-$MYSQL < sql/schema.sql
+db102_sql sql/schema.sql
 
-echo "== load from $DATA_DIR (this is the slow part; scale 1 takes a while)"
+echo "== data (the slow part: ~2 min for lab, 15-40 min for full)"
 start=$(date +%s)
-sed "s#'/data/#'${DATA_DIR}/#g" sql/load.sql | $MYSQL
+sed "s#'/data/#'${csv_dir}/#g" sql/load.sql | db102_sql
 echo "== loaded in $(( $(date +%s) - start ))s"
 
 echo "== verify"
-$MYSQL < sql/verify.sql
+db102_sql sql/verify.sql --table

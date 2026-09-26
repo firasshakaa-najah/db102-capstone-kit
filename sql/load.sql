@@ -1,7 +1,7 @@
--- DB-102 capstone: bulk load the generated CSVs (server-side LOAD DATA INFILE).
--- Run through scripts/load.sh, which points '/data/' at your CSV folder.
--- Inside Docker the ./data folder is mounted read-only at /data and
--- secure_file_priv=/data allows the server to read it.
+-- DB-102 capstone: bulk load the generated CSVs with LOAD DATA LOCAL INFILE (the mysql
+-- client reads the files from your disk and streams them to the server).
+-- Run it through scripts/load.sh, which replaces '/data/' with your CSV folder and
+-- "shopdb" with the target database (shopdb for lab, shopdb_full for full).
 
 USE shopdb;
 
@@ -12,28 +12,28 @@ SET SESSION sql_log_bin = 0;
 SET SESSION foreign_key_checks = 0;
 SET SESSION unique_checks = 0;
 
-LOAD DATA INFILE '/data/tenants.csv' INTO TABLE tenants
+LOAD DATA LOCAL INFILE '/data/tenants.csv' INTO TABLE tenants
   FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' ESCAPED BY '\\'
   LINES TERMINATED BY '\n' IGNORE 1 LINES
   (id, name, plan, country_code, created_at);
 
-LOAD DATA INFILE '/data/stores.csv' INTO TABLE stores
+LOAD DATA LOCAL INFILE '/data/stores.csv' INTO TABLE stores
   FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' ESCAPED BY '\\'
   LINES TERMINATED BY '\n' IGNORE 1 LINES
   (id, tenant_id, name, slug, currency, created_at);
 
-LOAD DATA INFILE '/data/products.csv' INTO TABLE products
+LOAD DATA LOCAL INFILE '/data/products.csv' INTO TABLE products
   FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' ESCAPED BY '\\'
   LINES TERMINATED BY '\n' IGNORE 1 LINES
   (id, tenant_id, store_id, sku, title, category, price, stock_qty, is_active, created_at);
 
-LOAD DATA INFILE '/data/customers.csv' INTO TABLE customers
+LOAD DATA LOCAL INFILE '/data/customers.csv' INTO TABLE customers
   FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' ESCAPED BY '\\'
   LINES TERMINATED BY '\n' IGNORE 1 LINES
   (id, tenant_id, store_id, email, first_name, last_name, @phone, @city, country_code, created_at)
   SET phone = NULLIF(@phone, ''), city = NULLIF(@city, '');
 
-LOAD DATA INFILE '/data/orders.csv' INTO TABLE orders
+LOAD DATA LOCAL INFILE '/data/orders.csv' INTO TABLE orders
   FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' ESCAPED BY '\\'
   LINES TERMINATED BY '\n' IGNORE 1 LINES
   (id, tenant_id, store_id, customer_id, order_number, status, channel, currency,
@@ -41,18 +41,18 @@ LOAD DATA INFILE '/data/orders.csv' INTO TABLE orders
    created_at, updated_at)
   SET shipping_city = NULLIF(@shipping_city, '');
 
-LOAD DATA INFILE '/data/order_items.csv' INTO TABLE order_items
+LOAD DATA LOCAL INFILE '/data/order_items.csv' INTO TABLE order_items
   FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' ESCAPED BY '\\'
   LINES TERMINATED BY '\n' IGNORE 1 LINES
   (id, tenant_id, order_id, product_id, quantity, unit_price, line_total);
 
-LOAD DATA INFILE '/data/payments.csv' INTO TABLE payments
+LOAD DATA LOCAL INFILE '/data/payments.csv' INTO TABLE payments
   FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' ESCAPED BY '\\'
   LINES TERMINATED BY '\n' IGNORE 1 LINES
   (id, tenant_id, order_id, provider, status, amount, currency, @provider_ref, created_at)
   SET provider_ref = NULLIF(@provider_ref, '');
 
-LOAD DATA INFILE '/data/events.csv' INTO TABLE events
+LOAD DATA LOCAL INFILE '/data/events.csv' INTO TABLE events
   FIELDS TERMINATED BY ',' OPTIONALLY ENCLOSED BY '"' ESCAPED BY '\\'
   LINES TERMINATED BY '\n' IGNORE 1 LINES
   (id, tenant_id, store_id, @customer_id, session_id, event_type, @product_id, @order_id,
