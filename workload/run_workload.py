@@ -13,7 +13,10 @@ EXPLAIN ANALYZE.
     python run_workload.py --heavy 0          # skip the catastrophic report queries (smoke test)
     python run_workload.py --list             # print the query mix and exit
 
-Connection: --host/--port/--user/--password/--db (defaults match docker-compose.yml).
+    python run_workload.py --target full      # the scale-1 server (port 3307) instead of the lab one
+
+Connection: --target lab|full picks the docker-compose server (lab = port 3306, full = port 3307);
+--host/--port/--user/--password/--db override it (defaults match docker-compose.yml).
 Every SELECT carries MAX_EXECUTION_TIME(20000) so one bad query cannot hang a thread
 forever; a timeout is counted, not fatal (that is also how production apps do it).
 """
@@ -25,6 +28,9 @@ import time
 from collections import defaultdict
 
 import pymysql
+
+# The two servers in docker-compose.yml: lab = service "mysql" (scale 0.2), full = "mysql-full" (scale 1).
+TARGET_PORTS = {"lab": 3306, "full": 3307}
 
 NOW = "2026-09-13 00:00:00"      # the dataset ends at semester start; "today" for the app
 CAP = "/*+ MAX_EXECUTION_TIME(20000) */"
@@ -255,7 +261,9 @@ def report(stats, elapsed):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--host", default="127.0.0.1")
-    ap.add_argument("--port", type=int, default=3306)
+    ap.add_argument("--target", choices=sorted(TARGET_PORTS), default="lab",
+                    help="which docker-compose server: lab (scale 0.2, port 3306) or full (scale 1, port 3307)")
+    ap.add_argument("--port", type=int, default=None, help="overrides the port implied by --target")
     ap.add_argument("--user", default="app")
     ap.add_argument("--password", default="app")
     ap.add_argument("--db", default="shopdb")
@@ -267,6 +275,8 @@ def main():
     ap.add_argument("--list", action="store_true", help="print the query mix and exit")
     ap.add_argument("--verbose", action="store_true")
     args = ap.parse_args()
+    if args.port is None:
+        args.port = TARGET_PORTS[args.target]
 
     mix = [(n, w * (args.heavy if heavy else 1.0), heavy, sql, b) for n, w, heavy, sql, b in QUERIES]
     if args.only:
@@ -280,7 +290,7 @@ def main():
         return
 
     conn = pymysql.connect(host=args.host, port=args.port, user=args.user, password=args.password, database=args.db)
-    print("sampling parameters from the live data ...", flush=True)
+    print(f"target {args.target}: {args.host}:{args.port}/{args.db} - sampling parameters from the live data ...", flush=True)
     sampler = Sampler(conn, random.Random(args.seed))
     conn.close()
     print(f"{len(sampler.store_ids)} stores, {sampler.max_order:,} orders, {sampler.max_event:,} events. "

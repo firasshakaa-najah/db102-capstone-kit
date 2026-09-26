@@ -2,3 +2,6 @@ data/*.csv
 data/MANIFEST.json
 dumps/
 __pycache__/
+data-full/*.csv
+data-full/MANIFEST.json
+.DS_Store
