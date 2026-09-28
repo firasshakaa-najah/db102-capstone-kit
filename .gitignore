@@ -6,3 +6,4 @@ data-full/*.csv
 data-full/MANIFEST.json
 .DS_Store
 .venv/
+evidence-*.txt
